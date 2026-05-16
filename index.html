@@ -106,6 +106,17 @@
       gap: 6px;
       font-size: 18px;
     }
+
+    #result {
+      margin-top: 14px;
+      padding: 14px 16px;
+      border-radius: 14px;
+      background: rgba(34, 197, 94, 0.12);
+      border: 1px solid rgba(34, 197, 94, 0.3);
+      font-size: 22px;
+      font-weight: 700;
+      color: #86efac;
+    }
   </style>
 </head>
 <body>
@@ -120,11 +131,11 @@
       </div>
 
       <div class="stage">
-        <video id="video" playsinline autoplay muted></video>
         <canvas id="overlay"></canvas>
       </div>
 
       <div id="status"></div>
+      <div id="result">Resultado: esperando inicio</div>
       <div id="label-container"></div>
     </section>
   </main>
@@ -133,19 +144,24 @@
   <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/pose@0.8/dist/teachablemachine-pose.min.js"></script>
   <script>
     const MODEL_URL = "./my-pose-model/";
-    const video = document.getElementById("video");
     const overlay = document.getElementById("overlay");
     const overlayCtx = overlay.getContext("2d");
     const statusEl = document.getElementById("status");
+    const resultEl = document.getElementById("result");
     const labelContainer = document.getElementById("label-container");
 
     let stream = null;
+    let webcam = null;
     let model = null;
     let maxPredictions = 0;
     let running = false;
 
     function setStatus(message) {
       statusEl.textContent = message;
+    }
+
+    function setResult(message) {
+      resultEl.textContent = message;
     }
 
     async function init() {
@@ -169,20 +185,16 @@
           }
         }
 
-        stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: "user" },
-          audio: false,
-        });
-
-        video.srcObject = stream;
-        await video.play();
-
-        const size = Math.min(video.videoWidth || 640, video.videoHeight || 640) || 640;
+        const size = 640;
+        webcam = new tmPose.Webcam(size, size, true);
+        await webcam.setup();
+        await webcam.play();
         overlay.width = size;
         overlay.height = size;
 
         running = true;
         setStatus("Cámara activa.");
+        setResult("Resultado: analizando...");
         requestAnimationFrame(loop);
       } catch (error) {
         console.error(error);
@@ -193,25 +205,40 @@
 
     function stopCamera() {
       running = false;
-      if (stream) {
-        stream.getTracks().forEach((track) => track.stop());
-        stream = null;
+      if (webcam) {
+        webcam.stop();
+        webcam = null;
       }
-      video.srcObject = null;
       overlayCtx.clearRect(0, 0, overlay.width, overlay.height);
       setStatus("Cámara detenida.");
     }
 
     async function loop() {
-      if (!running || !model || !video.srcObject) {
+      if (!running || !model || !webcam) {
         return;
       }
 
       try {
-        overlayCtx.drawImage(video, 0, 0, overlay.width, overlay.height);
+        webcam.update();
+        overlayCtx.drawImage(webcam.canvas, 0, 0, overlay.width, overlay.height);
 
-        const { pose, posenetOutput } = await model.estimatePose(video);
+        const { pose, posenetOutput } = await model.estimatePose(webcam.canvas);
         const prediction = await model.predict(posenetOutput);
+
+        let bestIndex = 0;
+        for (let i = 1; i < prediction.length; i++) {
+          if (prediction[i].probability > prediction[bestIndex].probability) {
+            bestIndex = i;
+          }
+        }
+
+        const best = prediction[bestIndex];
+        const confidence = best.probability;
+        if (confidence >= 0.5) {
+          setResult(`Resultado: ${best.className} (${confidence.toFixed(2)})`);
+        } else {
+          setResult(`Resultado: no seguro aún (${best.className} ${confidence.toFixed(2)})`);
+        }
 
         for (let i = 0; i < maxPredictions; i++) {
           labelContainer.childNodes[i].textContent =
