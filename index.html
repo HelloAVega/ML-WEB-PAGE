@@ -4,260 +4,73 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Teachable Machine Pose Model</title>
-  <style>
-    :root {
-      color-scheme: dark;
-    }
-
-    body {
-      margin: 0;
-      font-family: Arial, sans-serif;
-      background: #0f172a;
-      color: #e5e7eb;
-      min-height: 100vh;
-      display: grid;
-      place-items: center;
-    }
-
-    .app {
-      width: min(94vw, 760px);
-      padding: 20px;
-    }
-
-    .card {
-      background: rgba(15, 23, 42, 0.92);
-      border: 1px solid rgba(148, 163, 184, 0.22);
-      border-radius: 20px;
-      padding: 18px;
-      box-shadow: 0 24px 70px rgba(0, 0, 0, 0.35);
-      backdrop-filter: blur(10px);
-    }
-
-    h1 {
-      margin: 0 0 12px;
-      font-size: clamp(24px, 4vw, 36px);
-    }
-
-    p {
-      margin: 8px 0 14px;
-      color: #cbd5e1;
-    }
-
-    .controls {
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-      margin-bottom: 14px;
-    }
-
-    button {
-      appearance: none;
-      border: 0;
-      border-radius: 12px;
-      padding: 11px 16px;
-      font-weight: 700;
-      cursor: pointer;
-      background: #22c55e;
-      color: #052e16;
-    }
-
-    button.secondary {
-      background: #334155;
-      color: #e2e8f0;
-    }
-
-    .stage {
-      position: relative;
-      width: min(100%, 640px);
-      aspect-ratio: 1 / 1;
-      margin-top: 12px;
-      background: #020617;
-      border-radius: 18px;
-      overflow: hidden;
-      border: 1px solid rgba(148, 163, 184, 0.18);
-    }
-
-    video,
-    canvas {
-      position: absolute;
-      inset: 0;
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
-
-    video {
-      background: #000;
-    }
-
-    canvas {
-      pointer-events: none;
-    }
-
-    #status {
-      margin-top: 12px;
-      min-height: 24px;
-      color: #fbbf24;
-    }
-
-    #label-container {
-      margin-top: 14px;
-      display: grid;
-      gap: 6px;
-      font-size: 18px;
-    }
-
-    #result {
-      margin-top: 14px;
-      padding: 14px 16px;
-      border-radius: 14px;
-      background: rgba(34, 197, 94, 0.12);
-      border: 1px solid rgba(34, 197, 94, 0.3);
-      font-size: 22px;
-      font-weight: 700;
-      color: #86efac;
-    }
-  </style>
 </head>
 <body>
-  <main class="app">
-    <section class="card">
-      <h1>Teachable Machine Pose Model</h1>
-      <p>Primero se ve el video real de la cámara. Encima se dibuja el pose model.</p>
+  <div>Teachable Machine Pose Model</div>
+  <button type="button" onclick="init()">Start</button>
+  <div><canvas id="canvas"></canvas></div>
+  <div id="label-container"></div>
 
-      <div class="controls">
-        <button type="button" onclick="init()">Start</button>
-        <button type="button" class="secondary" onclick="stopCamera()">Stop</button>
-      </div>
-
-      <div class="stage">
-        <canvas id="overlay"></canvas>
-      </div>
-
-      <div id="status"></div>
-      <div id="result">Resultado: esperando inicio</div>
-      <div id="label-container"></div>
-    </section>
-  </main>
-
-  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@1.7.4/dist/tf.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@1.3.1/dist/tf.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/pose@0.8/dist/teachablemachine-pose.min.js"></script>
-  <script>
-    const MODEL_URL = "./my-pose-model/";
-    const overlay = document.getElementById("overlay");
-    const overlayCtx = overlay.getContext("2d");
-    const statusEl = document.getElementById("status");
-    const resultEl = document.getElementById("result");
-    const labelContainer = document.getElementById("label-container");
-
-    let stream = null;
-    let webcam = null;
-    let model = null;
-    let maxPredictions = 0;
-    let running = false;
-
-    function setStatus(message) {
-      statusEl.textContent = message;
-    }
-
-    function setResult(message) {
-      resultEl.textContent = message;
-    }
+  <script type="text/javascript">
+    const URL = "./my-pose-model/";
+    let model, webcam, ctx, labelContainer, maxPredictions;
 
     async function init() {
-      try {
-        if (!window.isSecureContext && location.hostname !== "localhost" && location.hostname !== "127.0.0.1") {
-          setStatus("En móvil necesitas HTTPS para que la cámara funcione.");
-          return;
-        }
+      const modelURL = URL + "model.json";
+      const metadataURL = URL + "metadata.json";
 
-        setStatus("Pidiendo permiso de cámara...");
+      model = await tmPose.load(modelURL, metadataURL);
+      maxPredictions = model.getTotalClasses();
 
-        if (!model) {
-          setStatus("Cargando modelo...");
-          const modelURL = MODEL_URL + "model.json";
-          const metadataURL = MODEL_URL + "metadata.json";
-          model = await tmPose.load(modelURL, metadataURL);
-          maxPredictions = model.getTotalClasses();
-          labelContainer.innerHTML = "";
-          for (let i = 0; i < maxPredictions; i++) {
-            labelContainer.appendChild(document.createElement("div"));
-          }
-        }
+      const size = 200;
+      const flip = true;
+      webcam = new tmPose.Webcam(size, size, flip);
+      await webcam.setup();
+      await webcam.play();
+      window.requestAnimationFrame(loop);
 
-        const size = 640;
-        webcam = new tmPose.Webcam(size, size, true);
-        await webcam.setup();
-        await webcam.play();
-        overlay.width = size;
-        overlay.height = size;
+      const canvas = document.getElementById("canvas");
+      canvas.width = size;
+      canvas.height = size;
+      ctx = canvas.getContext("2d");
+      labelContainer = document.getElementById("label-container");
+      labelContainer.innerHTML = "";
 
-        running = true;
-        setStatus("Cámara activa.");
-        setResult("Resultado: analizando...");
-        requestAnimationFrame(loop);
-      } catch (error) {
-        console.error(error);
-        const detail = error && error.message ? error.message : String(error);
-        setStatus("No se pudo abrir la cámara: " + detail);
+      for (let i = 0; i < maxPredictions; i++) {
+        labelContainer.appendChild(document.createElement("div"));
       }
-    }
-
-    function stopCamera() {
-      running = false;
-      if (webcam) {
-        webcam.stop();
-        webcam = null;
-      }
-      overlayCtx.clearRect(0, 0, overlay.width, overlay.height);
-      setStatus("Cámara detenida.");
     }
 
     async function loop() {
-      if (!running || !model || !webcam) {
-        return;
-      }
-
-      try {
-        webcam.update();
-        overlayCtx.drawImage(webcam.canvas, 0, 0, overlay.width, overlay.height);
-
-        const { pose, posenetOutput } = await model.estimatePose(webcam.canvas);
-        const prediction = await model.predict(posenetOutput);
-
-        let bestIndex = 0;
-        for (let i = 1; i < prediction.length; i++) {
-          if (prediction[i].probability > prediction[bestIndex].probability) {
-            bestIndex = i;
-          }
-        }
-
-        const best = prediction[bestIndex];
-        const confidence = best.probability;
-        if (confidence >= 0.5) {
-          setResult(`Resultado: ${best.className} (${confidence.toFixed(2)})`);
-        } else {
-          setResult(`Resultado: no seguro aún (${best.className} ${confidence.toFixed(2)})`);
-        }
-
-        for (let i = 0; i < maxPredictions; i++) {
-          labelContainer.childNodes[i].textContent =
-            prediction[i].className + ": " + prediction[i].probability.toFixed(2);
-        }
-
-        const minPartConfidence = 0.5;
-        tmPose.drawKeypoints(pose.keypoints, minPartConfidence, overlayCtx);
-        tmPose.drawSkeleton(pose.keypoints, minPartConfidence, overlayCtx);
-      } catch (error) {
-        console.error(error);
-        setStatus("La cámara funciona, pero el modelo no pudo procesar el video.");
-      }
-
-      requestAnimationFrame(loop);
+      webcam.update();
+      await predict();
+      window.requestAnimationFrame(loop);
     }
 
-    window.init = init;
-    window.stopCamera = stopCamera;
+    async function predict() {
+      const { pose, posenetOutput } = await model.estimatePose(webcam.canvas);
+      const prediction = await model.predict(posenetOutput);
+
+      for (let i = 0; i < maxPredictions; i++) {
+        const classPrediction = prediction[i].className + ": " + prediction[i].probability.toFixed(2);
+        labelContainer.childNodes[i].innerHTML = classPrediction;
+      }
+
+      drawPose(pose);
+    }
+
+    function drawPose(pose) {
+      if (webcam.canvas) {
+        ctx.drawImage(webcam.canvas, 0, 0);
+        if (pose) {
+          const minPartConfidence = 0.5;
+          tmPose.drawKeypoints(pose.keypoints, minPartConfidence, ctx);
+          tmPose.drawSkeleton(pose.keypoints, minPartConfidence, ctx);
+        }
+      }
+    }
   </script>
 </body>
 </html>
