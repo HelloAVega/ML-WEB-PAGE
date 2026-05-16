@@ -8,7 +8,7 @@ Pequeña página que carga un modelo de poses localizado en `my-pose-model/` y m
 ## Capturas de pantalla
 
 ```
-![Vista principal](https://github.com/HelloAVega/ML-WEB-PAGE/blob/main/screenshots/main.png)
+![Vista principal](screenshots/main.png)
 ```
 
 - Captura principal: `screenshots/main.png`
