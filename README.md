@@ -7,10 +7,11 @@ Pequeña página que carga un modelo de poses localizado en `my-pose-model/` y m
 
 ![Vista principal](screenshots/main.png)
 
-## Cómo usar (rápido)
+## Cómo usar
 - Iniciar cámara: pulsa el botón **Cámara** para activar la webcam y ver detección en tiempo real.
 ![Vista principal](screenshots/camara.png)
 - Cargar imagen: pulsa **Cargar imagen** y selecciona un archivo; la página procesará la imagen y mostrará la predicción.
+![Vista principal](screenshots/imagen.png)
 
 ## Tecnologías usadas
 - HTML5
@@ -27,5 +28,3 @@ npx http-server . -p 8000
 ```
 
 Luego abrir `http://localhost:8000`.
-
-
