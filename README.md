@@ -9,7 +9,7 @@ Pequeña página que carga un modelo de poses localizado en `my-pose-model/` y m
 
 ## Cómo usar (rápido)
 - Iniciar cámara: pulsa el botón **Cámara** para activar la webcam y ver detección en tiempo real.
-  - ![Vista principal](screenshots/camara.png)
+![Vista principal](screenshots/camara.png)
 - Cargar imagen: pulsa **Cargar imagen** y selecciona un archivo; la página procesará la imagen y mostrará la predicción.
 
 ## Tecnologías usadas
