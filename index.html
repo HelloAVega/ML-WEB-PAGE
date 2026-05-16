@@ -4,42 +4,274 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Teachable Machine Pose Model</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+      color: #e2e8f0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 1200px;
+      width: 100%;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 30px;
+      background: rgba(15, 23, 42, 0.7);
+      backdrop-filter: blur(10px);
+      border-radius: 20px;
+      padding: 30px;
+      border: 1px solid rgba(148, 163, 184, 0.2);
+      box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
+    }
+
+    .header {
+      grid-column: 1 / -1;
+      text-align: center;
+      margin-bottom: 10px;
+    }
+
+    h1 {
+      font-size: 32px;
+      color: #60a5fa;
+      margin-bottom: 8px;
+    }
+
+    .subtitle {
+      color: #94a3b8;
+      font-size: 14px;
+    }
+
+    .video-section {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+
+    .controls {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+
+    button {
+      flex: 1;
+      padding: 12px 20px;
+      border: none;
+      border-radius: 10px;
+      font-weight: 600;
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    button[onclick="init()"] {
+      background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+      color: white;
+    }
+
+    button[onclick="init()"]:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 25px rgba(34, 197, 94, 0.4);
+    }
+
+    #canvas {
+      width: 100%;
+      aspect-ratio: 1;
+      background: #000;
+      border-radius: 12px;
+      border: 2px solid rgba(96, 165, 250, 0.3);
+      display: block;
+    }
+
+    .info-section {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .status-box {
+      padding: 16px;
+      border-radius: 12px;
+      background: rgba(30, 58, 138, 0.3);
+      border: 2px solid #3b82f6;
+      color: #93c5fd;
+    }
+
+    .status-box strong {
+      color: #60a5fa;
+      display: block;
+      margin-bottom: 6px;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .status-box span {
+      font-size: 14px;
+      word-break: break-word;
+    }
+
+    .prediction-box {
+      padding: 20px;
+      border-radius: 14px;
+      background: linear-gradient(135deg, rgba(34, 197, 94, 0.15) 0%, rgba(52, 211, 153, 0.1) 100%);
+      border: 2px solid #22c55e;
+      text-align: center;
+    }
+
+    .prediction-box strong {
+      display: block;
+      font-size: 12px;
+      text-transform: uppercase;
+      color: #10b981;
+      margin-bottom: 8px;
+      letter-spacing: 0.5px;
+    }
+
+    .prediction-value {
+      font-size: 28px;
+      font-weight: 700;
+      color: #22c55e;
+    }
+
+    .confidence {
+      font-size: 14px;
+      color: #86efac;
+      margin-top: 8px;
+    }
+
+    .classes-box {
+      padding: 16px;
+      border-radius: 12px;
+      background: rgba(59, 130, 246, 0.1);
+      border: 2px solid #3b82f6;
+    }
+
+    .classes-box strong {
+      display: block;
+      color: #60a5fa;
+      margin-bottom: 12px;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    #label-container {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+
+    #label-container div {
+      padding: 10px 12px;
+      background: rgba(148, 163, 184, 0.1);
+      border-left: 3px solid #60a5fa;
+      border-radius: 6px;
+      font-size: 13px;
+      color: #cbd5e1;
+      font-family: 'Courier New', monospace;
+    }
+
+    #label-container div:hover {
+      background: rgba(148, 163, 184, 0.2);
+      border-left-color: #93c5fd;
+    }
+
+    @media (max-width: 1024px) {
+      .container {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
 </head>
 <body>
-  <div>Teachable Machine Pose Model</div>
-  <button type="button" onclick="init()">Start</button>
-  <div><canvas id="canvas"></canvas></div>
-  <div id="label-container"></div>
+  <div class="container">
+    <div class="header">
+      <h1>Teachable Machine - Pose Model</h1>
+      <p class="subtitle">Detección de poses en tiempo real</p>
+    </div>
+
+    <div class="video-section">
+      <div class="controls">
+        <button type="button" onclick="init()">▶ Start</button>
+      </div>
+      <canvas id="canvas"></canvas>
+    </div>
+
+    <div class="info-section">
+      <div class="status-box">
+        <strong>Estado</strong>
+        <span id="status">Presiona Start para comenzar</span>
+      </div>
+
+      <div class="prediction-box">
+        <strong>Predicción Principal</strong>
+        <div class="prediction-value" id="main-prediction">--</div>
+        <div class="confidence" id="confidence">Confianza: --</div>
+      </div>
+
+      <div class="classes-box">
+        <strong>📊 Todas las Probabilidades</strong>
+        <div id="label-container"></div>
+      </div>
+    </div>
+  </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@1.3.1/dist/tf.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/pose@0.8/dist/teachablemachine-pose.min.js"></script>
   <script type="text/javascript">
     const URL = "./my-pose-model/";
     let model, webcam, ctx, labelContainer, maxPredictions;
+    const statusEl = document.getElementById("status");
+    const mainPredictionEl = document.getElementById("main-prediction");
+    const confidenceEl = document.getElementById("confidence");
 
     async function init() {
-      const modelURL = URL + "model.json";
-      const metadataURL = URL + "metadata.json";
+      try {
+        statusEl.textContent = "Cargando modelo...";
+        
+        const modelURL = URL + "model.json";
+        const metadataURL = URL + "metadata.json";
 
-      model = await tmPose.load(modelURL, metadataURL);
-      maxPredictions = model.getTotalClasses();
+        model = await tmPose.load(modelURL, metadataURL);
+        maxPredictions = model.getTotalClasses();
 
-      const size = 200;
-      const flip = true;
-      webcam = new tmPose.Webcam(size, size, flip);
-      await webcam.setup();
-      await webcam.play();
-      window.requestAnimationFrame(loop);
+        const size = 400;
+        const flip = true;
+        webcam = new tmPose.Webcam(size, size, flip);
+        await webcam.setup();
+        await webcam.play();
+        window.requestAnimationFrame(loop);
 
-      const canvas = document.getElementById("canvas");
-      canvas.width = size;
-      canvas.height = size;
-      ctx = canvas.getContext("2d");
-      labelContainer = document.getElementById("label-container");
-      labelContainer.innerHTML = "";
+        const canvas = document.getElementById("canvas");
+        canvas.width = size;
+        canvas.height = size;
+        ctx = canvas.getContext("2d");
+        labelContainer = document.getElementById("label-container");
+        labelContainer.innerHTML = "";
 
-      for (let i = 0; i < maxPredictions; i++) {
-        labelContainer.appendChild(document.createElement("div"));
+        for (let i = 0; i < maxPredictions; i++) {
+          labelContainer.appendChild(document.createElement("div"));
+        }
+
+        statusEl.textContent = "✓ Cámara activa";
+      } catch (error) {
+        console.error(error);
+        statusEl.textContent = "✗ Error: " + (error.message || error);
       }
     }
 
@@ -53,8 +285,19 @@
       const { pose, posenetOutput } = await model.estimatePose(webcam.canvas);
       const prediction = await model.predict(posenetOutput);
 
+      let bestIndex = 0;
+      for (let i = 1; i < prediction.length; i++) {
+        if (prediction[i].probability > prediction[bestIndex].probability) {
+          bestIndex = i;
+        }
+      }
+
+      const best = prediction[bestIndex];
+      mainPredictionEl.textContent = best.className;
+      confidenceEl.textContent = `Confianza: ${(best.probability * 100).toFixed(1)}%`;
+
       for (let i = 0; i < maxPredictions; i++) {
-        const classPrediction = prediction[i].className + ": " + prediction[i].probability.toFixed(2);
+        const classPrediction = prediction[i].className + ": " + (prediction[i].probability * 100).toFixed(1) + "%";
         labelContainer.childNodes[i].innerHTML = classPrediction;
       }
 
@@ -72,5 +315,7 @@
       }
     }
   </script>
+</body>
+</html>
 </body>
 </html>
