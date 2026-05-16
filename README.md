@@ -1,6 +1,6 @@
 # ML Web Page
 
-Página web de demostración que detecta posturas (de pie, sentado, acostado).
+Página web que detecta posturas (de pie, sentado, acostado).
 
 ## Descripción
 Pequeña página que carga un modelo de poses localizado en `my-pose-model/` y muestra resultados en el navegador. El modelo puede clasificar posturas comunes —por ejemplo: **de pie**, **sentado** y **acostado**— y muestra los keypoints y el esqueleto sobre el `canvas`.
