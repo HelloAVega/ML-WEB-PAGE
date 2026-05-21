@@ -1,4 +1,4 @@
-# ML Web Page one
+# ML Web Page 
 
 Página web que detecta posturas (de pie, sentado, acostado).
 
